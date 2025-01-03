@@ -1,0 +1,104 @@
+type = "sin"
+A=3
+AnalogFrequency=360
+SamplingFrequency=720
+PhaseShift = 1.96349540849362
+
+______________________________________
+
+type = "cos"
+A = 3
+AnalogFrequency = 200
+SamplingFrequency = 500
+PhaseShift = 2.35619449019235
+
+
+
+import numpy as np
+from math import pi
+import matplotlib.pyplot as plt
+import streamlit as st
+
+def generateSinWave(amplitude, frequency, phase, sampling_frequency, duration=0.05):
+    """
+    Generate a sine wave using the discrete equation:
+    x[n] = A * sin(2 * pi * f * n / fs + theta)
+    """
+    n_samples = int(sampling_frequency * duration) 
+    n = np.arange(n_samples)  
+    sine_wave = amplitude * np.sin(2 * pi * frequency * n / sampling_frequency + phase)
+    return n, sine_wave
+
+def generateCosWave(amplitude, frequency, phase, sampling_frequency, duration=0.05):
+    """
+    Generate a cosine wave using the discrete equation:
+    x[n] = A * cos(2 * pi * f * n / fs + theta)
+    """
+    n_samples = int(sampling_frequency * duration)  # Number of samples for the given duration
+    n = np.arange(n_samples)  # Sample indices
+    cosine_wave = amplitude * np.cos(2 * pi * frequency * n / sampling_frequency + phase)
+    return n, cosine_wave
+
+def saveSignalToTxt(filename, n_values, signal_values, amplitude, frequency, phase, sampling_frequency):
+    """
+    Save the generated signal to a text file in the specified format.
+    """
+    with open(filename, 'w') as file:
+        file.write("0\n")  # SignalType: Time domain (0)
+        file.write("0\n")  # IsPeriodic: 0 (not periodic)
+        N1 = len(signal_values)  # Number of samples
+        file.write(f"{N1}\n")  # Number of samples
+
+        # Write each sample (index and signal value)
+        for index, val in enumerate(signal_values):
+            file.write(f"{index} {val:.6f}\n")  # Save signal value with 6 decimal places
+
+        print(f"Signal saved to {filename}")
+
+def displaySignal():
+    """
+    Streamlit UI for generating and displaying sine and cosine signals.
+    """
+    st.title("Signal Generation")
+
+    # User inputs for amplitude, frequency, phase shift, and sampling frequency
+    amplitude = st.text_input("Amplitude:", value="1.0")
+    frequency = st.number_input("Enter Signal Frequency (Hz):", min_value=0.0, step=1.0)
+    sampling_frequency = st.number_input("Enter Sampling Frequency (Hz):", min_value=0.0, step=1.0)
+    phase = st.number_input("Phase Shift (radians):", min_value=0.0, max_value=pi, format="%.14f")
+
+    if sampling_frequency < 2 * frequency:
+        st.error(f"Sampling Frequency must be at least twice the Signal Frequency ({2 * frequency} Hz). Please increase the Sampling Frequency.")
+
+    st.text("Choose Signal Type:\n")
+    generate_sine = st.checkbox("Generate Sine Wave")
+    generate_cosine = st.checkbox("Generate Cosine Wave")
+
+    # Generate and plot signals based on user selection
+    if st.button("Generate Signal"):
+        amplitude = float(amplitude)  # Convert input string to float
+
+        if generate_sine:
+            n_s, signal_s = generateSinWave(amplitude, frequency, phase, sampling_frequency)
+            plt.figure(figsize=(10, 5))
+            plt.stem(n_s, signal_s, label="Sine Wave", basefmt=" ")
+            plt.title("Sine Wave")
+            plt.xlabel('Sample Index (n)')
+            plt.ylabel('Amplitude')
+            plt.grid(True)
+            st.pyplot(plt)
+            sinSignalOutput = "sinOutputFile.txt"
+            saveSignalToTxt(sinSignalOutput, n_s, signal_s, amplitude, frequency, phase, sampling_frequency)
+
+        if generate_cosine:
+            n_c, signal_c = generateCosWave(amplitude, frequency, phase, sampling_frequency)
+            plt.figure(figsize=(10, 5))
+            plt.stem(n_c, signal_c, label="Cosine Wave", basefmt=" ")
+            plt.title("Cosine Wave")
+            plt.xlabel('Sample Index (n)')
+            plt.ylabel('Amplitude')
+            plt.grid(True)
+            st.pyplot(plt)
+            cosSignalOutput = "cosOutputFile.txt"
+            saveSignalToTxt(cosSignalOutput, n_c, signal_c, amplitude, frequency, phase, sampling_frequency)
+
